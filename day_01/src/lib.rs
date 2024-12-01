@@ -1,5 +1,5 @@
 use anyhow::{anyhow, ensure};
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Problem {
@@ -58,6 +58,29 @@ pub fn solve_part_1(p: &Problem) -> i32 {
         .sum()
 }
 
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> i32 {
+    let Problem {
+        first_list,
+        second_list,
+    } = p;
+
+    let counts: HashMap<i32, i32> = {
+        let mut counts = HashMap::new();
+
+        for n in second_list {
+            *counts.entry(*n).or_default() += 1;
+        }
+
+        counts
+    };
+
+    first_list
+        .iter()
+        .map(|a| a * counts.get(a).unwrap_or(&0))
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,5 +111,12 @@ mod tests {
         let p: Problem = TEST_INPUT.parse().unwrap();
 
         assert_eq!(solve_part_1(&p), 11);
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 31);
     }
 }
