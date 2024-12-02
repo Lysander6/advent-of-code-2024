@@ -13,36 +13,61 @@ impl FromStr for Problem {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let reports = s
             .lines()
-            .map(|l| l.split_ascii_whitespace().map(str::parse).collect())
+            .map(|l| {
+                let record = l
+                    .split_ascii_whitespace()
+                    .map(str::parse)
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                ensure!(record.len() > 1, "Record has at least two entries");
+
+                Ok(record)
+            })
             .collect::<Result<_, _>>()?;
 
         Ok(Problem { reports })
     }
 }
 
-fn is_safe(record: &[i32]) -> Result<bool, anyhow::Error> {
-    ensure!(record.len() > 1, "Record has at least two entries");
-
+fn is_safe(record: &[i32]) -> bool {
     let increasing = record[0] < record[1];
 
-    Ok(record
+    record
         .windows(2)
         .map(|levels| levels[0] - levels[1])
         .all(|diff| {
             (increasing && (-3..=-1).contains(&diff)) || (!increasing && (1..=3).contains(&diff))
-        }))
+        })
 }
 
-/// # Panics
-///
-/// Panics when any of the reports does not met basic assumptions about its format
+fn is_safe_with_dampener(record: &[i32]) -> bool {
+    if is_safe(record) {
+        return true;
+    }
+
+    for skip_idx in 0..record.len() {
+        if is_safe(&[&record[0..skip_idx], &record[(skip_idx + 1)..]].concat()) {
+            return true;
+        }
+    }
+
+    false
+}
+
 #[must_use]
 pub fn solve_part_1(p: &Problem) -> usize {
     let Problem { reports } = p;
 
+    reports.iter().filter(|report| is_safe(report)).count()
+}
+
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem { reports } = p;
+
     reports
         .iter()
-        .filter(|report| is_safe(report).expect("Assumption about record failed"))
+        .filter(|report| is_safe_with_dampener(report))
         .count()
 }
 
@@ -68,12 +93,12 @@ mod tests {
 
     #[test]
     fn test_is_safe_1() {
-        assert!(is_safe(&[7, 6, 4, 2, 1]).unwrap());
+        assert!(is_safe(&[7, 6, 4, 2, 1]));
     }
 
     #[test]
     fn test_is_safe_2() {
-        assert!(!is_safe(&[1, 2, 7, 8, 9]).unwrap());
+        assert!(!is_safe(&[1, 2, 7, 8, 9]));
     }
 
     #[test]
@@ -81,5 +106,22 @@ mod tests {
         let p: Problem = TEST_INPUT.parse().unwrap();
 
         assert_eq!(solve_part_1(&p), 2);
+    }
+
+    #[test]
+    fn test_is_safe_with_dampener_1() {
+        assert!(is_safe_with_dampener(&[3, 2, 3, 4, 5, 6]));
+    }
+
+    #[test]
+    fn test_is_safe_with_dampener_2() {
+        assert!(is_safe_with_dampener(&[1, 2, 3, 4, 5, 4]));
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 4);
     }
 }
