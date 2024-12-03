@@ -38,22 +38,16 @@ impl<'a> ProgramParser<'a> {
         let mut result = vec![];
 
         while self.iterator.peek().is_some() {
-            if self.parse_do() {
+            if self.parse_literal("do()") {
                 result.push(Instruction::Do);
-            } else if self.parse_dont() {
+            } else if self.parse_literal("don't()") {
                 result.push(Instruction::Dont);
-            } else if self.parse_mul() {
-                if let Some('(') = self.iterator.peek() {
-                    let _ = self.iterator.next();
-
+            } else if self.parse_literal("mul") {
+                if self.parse_literal("(") {
                     if let Some(a) = self.parse_number() {
-                        if let Some(',') = self.iterator.peek() {
-                            let _ = self.iterator.next();
-
+                        if self.parse_literal(",") {
                             if let Some(b) = self.parse_number() {
-                                if let Some(')') = self.iterator.peek() {
-                                    let _ = self.iterator.next();
-
+                                if self.parse_literal(")") {
                                     result.push(Instruction::Mul(a, b));
                                 }
                             }
@@ -68,80 +62,24 @@ impl<'a> ProgramParser<'a> {
         result
     }
 
-    fn parse_do(&mut self) -> bool {
+    fn parse_literal(&mut self, literal: &str) -> bool {
         let mut iter = self.iterator.clone();
 
-        if let Some('d') = iter.peek() {
-            let _ = iter.next();
-            if let Some('o') = iter.peek() {
-                let _ = iter.next();
-                if let Some('(') = iter.peek() {
-                    let _ = iter.next();
-                    if let Some(')') = iter.peek() {
-                        let _ = iter.next();
-
-                        self.iterator = iter;
-
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
-    }
-
-    fn parse_dont(&mut self) -> bool {
-        let mut iter = self.iterator.clone();
-
-        if let Some('d') = iter.peek() {
-            let _ = iter.next();
-            if let Some('o') = iter.peek() {
-                let _ = iter.next();
-                if let Some('n') = iter.peek() {
-                    let _ = iter.next();
-                    if let Some('\'') = iter.peek() {
-                        let _ = iter.next();
-                        if let Some('t') = iter.peek() {
-                            let _ = iter.next();
-                            if let Some('(') = iter.peek() {
-                                let _ = iter.next();
-                                if let Some(')') = iter.peek() {
-                                    // 🤡
-                                    let _ = iter.next();
-
-                                    self.iterator = iter;
-
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        false
-    }
-
-    fn parse_mul(&mut self) -> bool {
-        let mut iter = self.iterator.clone();
-
-        if let Some('m') = iter.peek() {
-            let _ = iter.next();
-            if let Some('u') = iter.peek() {
-                let _ = iter.next();
-                if let Some('l') = iter.peek() {
+        for c in literal.chars() {
+            if let Some(peeked_c) = iter.peek() {
+                if c == *peeked_c {
                     let _ = iter.next();
 
-                    self.iterator = iter;
-
-                    return true;
+                    continue;
                 }
             }
+
+            return false;
         }
 
-        false
+        self.iterator = iter;
+
+        true
     }
 
     fn parse_number(&mut self) -> Option<u64> {
