@@ -4,6 +4,13 @@ use std::{
 };
 
 #[derive(Debug, Eq, PartialEq)]
+enum Instruction {
+    Do,
+    Dont,
+    Mul(u64, u64),
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct Problem {
     program: String,
 }
@@ -27,8 +34,8 @@ impl<'a> ProgramParser<'a> {
         }
     }
 
-    fn parse(&mut self) -> u64 {
-        let mut result = 0;
+    fn parse(&mut self) -> Vec<Instruction> {
+        let mut result = vec![];
 
         while self.iterator.peek().is_some() {
             if self.parse_mul() {
@@ -43,7 +50,7 @@ impl<'a> ProgramParser<'a> {
                                 if let Some(')') = self.iterator.peek() {
                                     let _ = self.iterator.next();
 
-                                    result += a * b;
+                                    result.push(Instruction::Mul(a, b));
                                 }
                             }
                         }
@@ -102,8 +109,17 @@ impl<'a> ProgramParser<'a> {
 pub fn solve_part_1(p: &Problem) -> u64 {
     let Problem { program } = p;
     let mut parser = ProgramParser::new(program);
+    let program = parser.parse();
 
-    parser.parse()
+    let mut result = 0;
+
+    for instr in program {
+        if let Instruction::Mul(a, b) = instr {
+            result += a * b;
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]
