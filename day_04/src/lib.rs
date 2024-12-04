@@ -86,11 +86,69 @@ fn count_xmas(chars: &[Vec<char>]) -> usize {
     count
 }
 
+fn count_x_mas_duh(chars: &[Vec<char>]) -> usize {
+    let mut count = 0;
+
+    let chars_height = chars.len();
+    let chars_width = chars[0].len();
+
+    for x in 1..(chars_height - 1) {
+        for y in 1..(chars_width - 1) {
+            if chars[x][y] == 'A' {
+                // M M
+                //  A
+                // S S
+                if (chars[x - 1][y - 1] == 'M' && chars[x + 1][y + 1] == 'S')
+                    && (chars[x - 1][y + 1] == 'M' && chars[x + 1][y - 1] == 'S')
+                {
+                    count += 1;
+                }
+                // first flipped
+                // S M
+                //  A
+                // S M
+                if (chars[x - 1][y - 1] == 'S' && chars[x + 1][y + 1] == 'M')
+                    && (chars[x - 1][y + 1] == 'M' && chars[x + 1][y - 1] == 'S')
+                {
+                    count += 1;
+                }
+                // second flipped
+                // M S
+                //  A
+                // M S
+                if (chars[x - 1][y - 1] == 'M' && chars[x + 1][y + 1] == 'S')
+                    && (chars[x - 1][y + 1] == 'S' && chars[x + 1][y - 1] == 'M')
+                {
+                    count += 1;
+                }
+                // both flipped
+                // S S
+                //  A
+                // M M
+                if (chars[x - 1][y - 1] == 'S' && chars[x + 1][y + 1] == 'M')
+                    && (chars[x - 1][y + 1] == 'S' && chars[x + 1][y - 1] == 'M')
+                {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    count
+}
+
 #[must_use]
 pub fn solve_part_1(p: &Problem) -> usize {
     let Problem { chars } = p;
 
     count_xmas(chars)
+}
+
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem { chars } = p;
+
+    count_x_mas_duh(chars)
 }
 
 #[cfg(test)]
@@ -115,5 +173,13 @@ MXMXAXMASX";
 
         assert_eq!(count_xmas(&p.chars), 1 + 2 + 3 + 2 + 1 + 4 + 1 + 4);
         assert_eq!(count_xmas(&p.chars), 18);
+    }
+
+    #[test]
+    fn test_count_x_mas_duh() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(count_x_mas_duh(&p.chars), 1 + 1 + 2 + 5);
+        assert_eq!(count_x_mas_duh(&p.chars), 9);
     }
 }
