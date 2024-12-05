@@ -84,7 +84,11 @@ fn fix_ordering(update: &[usize], rules: &HashMap<usize, HashSet<usize>>) -> Vec
     let mut current_page_ptr = 0;
 
     while current_page_ptr < update.len() {
+        // if there is a precedence rule for the current page
         if let Some(pages_that_must_be_after_current_page) = rules.get(&update[current_page_ptr]) {
+            // take intersection of pages that we've already seen and pages that
+            // should be placed after page currently under consideration (from
+            // its ordering rule)
             let pages_that_must_be_moved_after_current_page = pages_before_current_page
                 .intersection(pages_that_must_be_after_current_page)
                 .copied()
@@ -92,13 +96,18 @@ fn fix_ordering(update: &[usize], rules: &HashMap<usize, HashSet<usize>>) -> Vec
 
             let count_of_pages_to_move = pages_that_must_be_moved_after_current_page.len();
 
+            // add current page to the set of pages we've already processed
+            // (regardless if there is work left to do)
             pages_before_current_page.insert(update[current_page_ptr]);
 
             if count_of_pages_to_move == 0 {
+                // continue to the next page
                 current_page_ptr += 1;
                 continue;
             }
 
+            // move current page `count_of_pages_to_move` places back, append
+            // moved pages and then the rest of the original `update` record
             update = [
                 &update[0..(current_page_ptr - count_of_pages_to_move)],
                 &[update[current_page_ptr]],
@@ -107,12 +116,17 @@ fn fix_ordering(update: &[usize], rules: &HashMap<usize, HashSet<usize>>) -> Vec
             ]
             .concat();
 
+            // remove moved pages from set of processed pages
             for page in pages_that_must_be_moved_after_current_page {
                 pages_before_current_page.remove(&page);
             }
 
+            // rewind page pointer to the index right after where the current
+            // page was moved
             current_page_ptr -= count_of_pages_to_move - 1;
         } else {
+            // page has no related precedence rules - mark it as seen and
+            // proceed to the next page
             pages_before_current_page.insert(update[current_page_ptr]);
             current_page_ptr += 1;
         }
