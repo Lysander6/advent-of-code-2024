@@ -78,6 +78,49 @@ fn get_middle_page(update: &[usize]) -> usize {
     update[update.len().div_ceil(2) - 1]
 }
 
+fn fix_ordering(update: &[usize], rules: &HashMap<usize, HashSet<usize>>) -> Vec<usize> {
+    let mut pages_before_current_page: HashSet<usize> = HashSet::new();
+    let mut update = update.to_vec();
+    let mut current_page_ptr = 0;
+
+    while current_page_ptr < update.len() {
+        if let Some(pages_that_must_be_after_current_page) = rules.get(&update[current_page_ptr]) {
+            let pages_that_must_be_moved_after_current_page = pages_before_current_page
+                .intersection(pages_that_must_be_after_current_page)
+                .copied()
+                .collect::<Vec<_>>();
+
+            let count_of_pages_to_move = pages_that_must_be_moved_after_current_page.len();
+
+            pages_before_current_page.insert(update[current_page_ptr]);
+
+            if count_of_pages_to_move == 0 {
+                current_page_ptr += 1;
+                continue;
+            }
+
+            update = [
+                &update[0..(current_page_ptr - count_of_pages_to_move)],
+                &[update[current_page_ptr]],
+                &pages_that_must_be_moved_after_current_page,
+                &update[(current_page_ptr + 1)..],
+            ]
+            .concat();
+
+            for page in pages_that_must_be_moved_after_current_page {
+                pages_before_current_page.remove(&page);
+            }
+
+            current_page_ptr -= count_of_pages_to_move - 1;
+        } else {
+            pages_before_current_page.insert(update[current_page_ptr]);
+            current_page_ptr += 1;
+        }
+    }
+
+    update
+}
+
 #[must_use]
 pub fn solve_part_1(p: &Problem) -> usize {
     let Problem { rules, updates } = p;
@@ -87,6 +130,21 @@ pub fn solve_part_1(p: &Problem) -> usize {
         .filter(|update| is_valid_ordering(update, rules));
 
     let middle_pages = valid_updates.map(|update| get_middle_page(update));
+
+    middle_pages.sum()
+}
+
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem { rules, updates } = p;
+
+    let invalid_updates = updates
+        .iter()
+        .filter(|update| !is_valid_ordering(update, rules));
+
+    let fixed_updates = invalid_updates.map(|update| fix_ordering(update, rules));
+
+    let middle_pages = fixed_updates.map(|update| get_middle_page(&update));
 
     middle_pages.sum()
 }
@@ -169,5 +227,52 @@ mod tests {
         assert_eq!(get_middle_page(&[1, 2, 3, 4, 5]), 3);
         assert_eq!(get_middle_page(&[4, 9, 7]), 9);
         assert_eq!(get_middle_page(&[3, 6, 1, 4, 7, 9, 2]), 4);
+    }
+
+    #[test]
+    fn test_solve_part_1() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_1(&p), 143);
+    }
+
+    #[test]
+    fn test_page_move() {
+        let update = vec![1, 2, 3, 4, 5, 6];
+        let current_page_ptr = 3;
+        let pages_that_must_be_moved_after_current_page = vec![2, 3];
+        let count_of_pages_to_move = pages_that_must_be_moved_after_current_page.len();
+
+        assert_eq!(
+            [
+                &update[0..(current_page_ptr - count_of_pages_to_move)],
+                &[update[current_page_ptr]],
+                &pages_that_must_be_moved_after_current_page,
+                &update[(current_page_ptr + 1)..],
+            ]
+            .concat(),
+            vec![1, 4, 2, 3, 5, 6]
+        );
+    }
+
+    #[test]
+    fn test_fix_ordering() {
+        let Problem { rules, updates } = TEST_INPUT.parse().unwrap();
+
+        // not sure if solution (middle page) depends on order of moved pages, we will find out ¯\_(ツ)_/¯
+        // assert_eq!(fix_ordering(&updates[3], &rules), vec![97, 75, 47, 61, 53]);
+        // assert_eq!(fix_ordering(&updates[4], &rules), vec![61, 29, 13]);
+        // assert_eq!(fix_ordering(&updates[5], &rules), vec![97, 75, 47, 29, 13]);
+
+        assert_eq!(get_middle_page(&fix_ordering(&updates[3], &rules)), 47);
+        assert_eq!(get_middle_page(&fix_ordering(&updates[4], &rules)), 29);
+        assert_eq!(get_middle_page(&fix_ordering(&updates[5], &rules)), 47);
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 123);
     }
 }
