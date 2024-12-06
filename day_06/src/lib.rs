@@ -14,7 +14,7 @@ pub struct Problem {
     starting_position: (usize, usize),
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum Direction {
     Up,
     Right,
@@ -94,6 +94,15 @@ fn walk_maze(
     loop {
         let movement_delta = get_movement_delta(&movement_direction);
 
+        // TODO: replace if-let-else below with following let-else:
+        // let (Some(next_x), Some(next_y)) = (
+        //     current_position.0.checked_add_signed(movement_delta.0),
+        //     current_position.1.checked_add_signed(movement_delta.1),
+        // ) else {
+        //     // out of map
+        //     break;
+        // };
+
         if let (Some(next_x), Some(next_y)) = (
             current_position.0.checked_add_signed(movement_delta.0),
             current_position.1.checked_add_signed(movement_delta.1),
@@ -118,6 +127,53 @@ fn walk_maze(
     }
 
     visited_spaces.len()
+}
+
+fn walk_maze_and_check_for_loop(
+    starting_position: &(usize, usize),
+    starting_direction: Direction,
+    obstacles: &HashSet<(usize, usize)>,
+    map_height: usize,
+    map_width: usize,
+) -> bool {
+    let mut collided_obstacles: HashSet<(usize, usize, Direction)> = HashSet::new();
+    let mut current_position = *starting_position;
+    let mut movement_direction = starting_direction;
+
+    loop {
+        let movement_delta = get_movement_delta(&movement_direction);
+
+        if let (Some(next_x), Some(next_y)) = (
+            current_position.0.checked_add_signed(movement_delta.0),
+            current_position.1.checked_add_signed(movement_delta.1),
+        ) {
+            if next_x >= map_height || next_y >= map_width {
+                // out of map
+                break;
+            }
+
+            if obstacles.contains(&(next_x, next_y)) {
+                // check if it is repeated collision which indicates a loop
+                if collided_obstacles.contains(&(next_x, next_y, movement_direction.clone())) {
+                    return true;
+                }
+
+                // first store the collision
+                collided_obstacles.insert((next_x, next_y, movement_direction.clone()));
+
+                // then rotate
+                movement_direction = next_direction(&movement_direction);
+                continue;
+            }
+
+            current_position = (next_x, next_y);
+        } else {
+            // out of map
+            break;
+        }
+    }
+
+    false
 }
 
 #[must_use]
@@ -165,5 +221,106 @@ mod tests {
         let p: Problem = TEST_INPUT.parse().unwrap();
 
         assert_eq!(solve_part_1(&p), 41);
+    }
+
+    #[test]
+    fn test_walk_maze_and_check_for_loop() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &p.obstacles,
+                p.map_height,
+                p.map_width
+            ),
+            false
+        );
+
+        let mut obstacles_with_loop_1 = p.obstacles.clone();
+        obstacles_with_loop_1.insert((6, 3));
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &obstacles_with_loop_1,
+                p.map_height,
+                p.map_width
+            ),
+            true
+        );
+
+        let mut obstacles_with_loop_2 = p.obstacles.clone();
+        obstacles_with_loop_2.insert((7, 6));
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &obstacles_with_loop_2,
+                p.map_height,
+                p.map_width
+            ),
+            true
+        );
+
+        let mut obstacles_with_loop_3 = p.obstacles.clone();
+        obstacles_with_loop_3.insert((7, 7));
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &obstacles_with_loop_3,
+                p.map_height,
+                p.map_width
+            ),
+            true
+        );
+
+        let mut obstacles_with_loop_4 = p.obstacles.clone();
+        obstacles_with_loop_4.insert((8, 1));
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &obstacles_with_loop_4,
+                p.map_height,
+                p.map_width
+            ),
+            true
+        );
+
+        let mut obstacles_with_loop_5 = p.obstacles.clone();
+        obstacles_with_loop_5.insert((8, 3));
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &obstacles_with_loop_5,
+                p.map_height,
+                p.map_width
+            ),
+            true
+        );
+
+
+        let mut obstacles_with_loop_6 = p.obstacles.clone();
+        obstacles_with_loop_6.insert((9, 7));
+
+        assert_eq!(
+            walk_maze_and_check_for_loop(
+                &p.starting_position,
+                Direction::Up,
+                &obstacles_with_loop_6,
+                p.map_height,
+                p.map_width
+            ),
+            true
+        );
     }
 }
