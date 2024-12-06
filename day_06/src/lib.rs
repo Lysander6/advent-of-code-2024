@@ -188,6 +188,67 @@ pub fn solve_part_1(p: &Problem) -> usize {
     walk_maze(starting_position, obstacles, *map_height, *map_width)
 }
 
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem {
+        map_height,
+        map_width,
+        obstacles,
+        starting_position,
+    } = p;
+
+    let mut loop_inducing_obstacles: HashSet<(usize, usize)> = HashSet::new();
+
+    let mut current_position = *starting_position;
+    let mut movement_direction = Direction::Up;
+
+    loop {
+        let movement_delta = get_movement_delta(&movement_direction);
+
+        if let (Some(next_x), Some(next_y)) = (
+            current_position.0.checked_add_signed(movement_delta.0),
+            current_position.1.checked_add_signed(movement_delta.1),
+        ) {
+            if next_x >= *map_height || next_y >= *map_width {
+                // out of map
+                break;
+            }
+
+            if obstacles.contains(&(next_x, next_y)) {
+                // occupied space, rotate
+                movement_direction = next_direction(&movement_direction);
+                continue;
+            }
+
+            // check if placing an obstacle in front of guard leads to a loop
+            let expanded_obstacles = {
+                let mut temp = obstacles.clone();
+                temp.insert((next_x, next_y));
+                temp
+            };
+
+            if !(next_x == starting_position.0 && next_y == starting_position.1)
+                && walk_maze_and_check_for_loop(
+                    &current_position,
+                    movement_direction.clone(),
+                    &expanded_obstacles,
+                    *map_height,
+                    *map_width,
+                )
+            {
+                loop_inducing_obstacles.insert((next_x, next_y));
+            }
+
+            current_position = (next_x, next_y);
+        } else {
+            // out of map
+            break;
+        }
+    }
+
+    loop_inducing_obstacles.len()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -308,7 +369,6 @@ mod tests {
             true
         );
 
-
         let mut obstacles_with_loop_6 = p.obstacles.clone();
         obstacles_with_loop_6.insert((9, 7));
 
@@ -322,5 +382,12 @@ mod tests {
             ),
             true
         );
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 6);
     }
 }
