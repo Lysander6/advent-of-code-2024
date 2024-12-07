@@ -66,6 +66,36 @@ pub fn solve_part_1(p: &Problem) -> usize {
         .sum()
 }
 
+fn concat(a: usize, b: usize) -> usize {
+    a * 10usize.pow(b.ilog10() + 1) + b
+}
+
+fn try_operation_with_concat(val: usize, remaining: &[usize], expected: usize) -> bool {
+    if remaining.is_empty() {
+        return val == expected;
+    }
+
+    try_operation_with_concat(val + remaining[0], &remaining[1..], expected)
+        || try_operation_with_concat(val * remaining[0], &remaining[1..], expected)
+        || try_operation_with_concat(concat(val, remaining[0]), &remaining[1..], expected)
+}
+
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem { equations } = p;
+
+    equations
+        .iter()
+        .filter_map(|OplessEquation { operands, result }| {
+            if try_operation_with_concat(operands[0], &operands[1..], *result) {
+                Some(result)
+            } else {
+                None
+            }
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,5 +148,37 @@ mod tests {
         let p: Problem = TEST_INPUT.parse().unwrap();
 
         assert_eq!(solve_part_1(&p), 3749);
+    }
+
+    #[test]
+    fn test_digits_in_number() {
+        assert_eq!(101usize.ilog10() + 1, 3);
+        assert_eq!(199usize.ilog10() + 1, 3);
+        assert_eq!(1234usize.ilog10() + 1, 4);
+        assert_eq!(9999usize.ilog10() + 1, 4);
+    }
+
+    #[test]
+    fn test_concat() {
+        assert_eq!(concat(123, 456), 123456);
+        assert_eq!(concat(9876, 789), 9876789);
+        assert_eq!(concat(48, 6), 486);
+    }
+
+    #[test]
+    fn test_try_operation_with_concat() {
+        assert_eq!(try_operation_with_concat(15, &[6], 156), true);
+        assert_eq!(try_operation_with_concat(6, &[8, 6, 15], 7290), true);
+        assert_eq!(try_operation_with_concat(17, &[8, 14], 192), true);
+        assert_eq!(try_operation_with_concat(17, &[5], 83), false);
+        assert_eq!(try_operation_with_concat(16, &[10, 13], 161011), false);
+        assert_eq!(try_operation_with_concat(9, &[7, 18, 13], 21037), false);
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 11387);
     }
 }
