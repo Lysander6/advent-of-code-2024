@@ -57,11 +57,7 @@ pub fn solve_part_1(p: &Problem) -> usize {
     equations
         .iter()
         .filter_map(|OplessEquation { operands, result }| {
-            if try_operation(operands[0], &operands[1..], *result) {
-                Some(result)
-            } else {
-                None
-            }
+            try_operation(operands[0], &operands[1..], *result).then_some(result)
         })
         .sum()
 }
@@ -87,11 +83,7 @@ pub fn solve_part_2(p: &Problem) -> usize {
     equations
         .iter()
         .filter_map(|OplessEquation { operands, result }| {
-            if try_operation_with_concat(operands[0], &operands[1..], *result) {
-                Some(result)
-            } else {
-                None
-            }
+            try_operation_with_concat(operands[0], &operands[1..], *result).then_some(result)
         })
         .sum()
 }
