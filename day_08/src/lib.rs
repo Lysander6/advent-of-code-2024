@@ -44,7 +44,6 @@ fn get_antinodes(
     map_height: usize,
     map_width: usize,
 ) -> Vec<(usize, usize)> {
-    // [Option<(usize, usize)>; 2] {
     let mut result = vec![];
 
     #[allow(clippy::cast_possible_wrap)]
@@ -79,7 +78,6 @@ fn get_antinodes_multi(
     map_height: usize,
     map_width: usize,
 ) -> Vec<(usize, usize)> {
-    // [Option<(usize, usize)>; 2] {
     let mut result = vec![a, b];
 
     let mut a = a;
@@ -94,28 +92,24 @@ fn get_antinodes_multi(
         a.0.checked_add_signed(ab_diff.0),
         a.1.checked_add_signed(ab_diff.1),
     ) {
-        if anti_a_x < map_height && anti_a_y < map_width {
-            result.push((anti_a_x, anti_a_y));
-            a = (anti_a_x, anti_a_y);
-
-            continue;
+        if anti_a_x >= map_height || anti_a_y >= map_width {
+            break;
         }
 
-        break;
+        result.push((anti_a_x, anti_a_y));
+        a = (anti_a_x, anti_a_y);
     }
 
     while let (Some(anti_b_x), Some(anti_b_y)) = (
         b.0.checked_add_signed(ba_diff.0),
         b.1.checked_add_signed(ba_diff.1),
     ) {
-        if anti_b_x < map_height && anti_b_y < map_width {
-            result.push((anti_b_x, anti_b_y));
-            b = (anti_b_x, anti_b_y);
-
-            continue;
+        if anti_b_x >= map_height || anti_b_y >= map_width {
+            break;
         }
 
-        break;
+        result.push((anti_b_x, anti_b_y));
+        b = (anti_b_x, anti_b_y);
     }
 
     result
