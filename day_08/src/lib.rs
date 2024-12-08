@@ -73,6 +73,54 @@ fn get_antinodes(
     result
 }
 
+fn get_antinodes_multi(
+    a: (usize, usize),
+    b: (usize, usize),
+    map_height: usize,
+    map_width: usize,
+) -> Vec<(usize, usize)> {
+    // [Option<(usize, usize)>; 2] {
+    let mut result = vec![a, b];
+
+    let mut a = a;
+    let mut b = b;
+
+    #[allow(clippy::cast_possible_wrap)]
+    let ab_diff = (a.0 as isize - b.0 as isize, a.1 as isize - b.1 as isize);
+    #[allow(clippy::cast_possible_wrap)]
+    let ba_diff = (b.0 as isize - a.0 as isize, b.1 as isize - a.1 as isize);
+
+    while let (Some(anti_a_x), Some(anti_a_y)) = (
+        a.0.checked_add_signed(ab_diff.0),
+        a.1.checked_add_signed(ab_diff.1),
+    ) {
+        if anti_a_x < map_height && anti_a_y < map_width {
+            result.push((anti_a_x, anti_a_y));
+            a = (anti_a_x, anti_a_y);
+
+            continue;
+        }
+
+        break;
+    }
+
+    while let (Some(anti_b_x), Some(anti_b_y)) = (
+        b.0.checked_add_signed(ba_diff.0),
+        b.1.checked_add_signed(ba_diff.1),
+    ) {
+        if anti_b_x < map_height && anti_b_y < map_width {
+            result.push((anti_b_x, anti_b_y));
+            b = (anti_b_x, anti_b_y);
+
+            continue;
+        }
+
+        break;
+    }
+
+    result
+}
+
 #[must_use]
 pub fn solve_part_1(p: &Problem) -> usize {
     let Problem {
@@ -93,6 +141,34 @@ pub fn solve_part_1(p: &Problem) -> usize {
                 }
 
                 get_antinodes(*a, *b, *map_height, *map_width)
+            });
+
+        unique_antinode_locations.extend(antinodes);
+    }
+
+    unique_antinode_locations.len()
+}
+
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem {
+        antennas,
+        map_height,
+        map_width,
+    } = p;
+
+    let mut unique_antinode_locations: HashSet<(usize, usize)> = HashSet::new();
+
+    for antennas in antennas.values() {
+        let antinodes = antennas
+            .iter()
+            .cartesian_product(antennas)
+            .flat_map(|(a, b)| {
+                if a == b {
+                    return vec![];
+                }
+
+                get_antinodes_multi(*a, *b, *map_height, *map_width)
             });
 
         unique_antinode_locations.extend(antinodes);
@@ -144,5 +220,12 @@ mod tests {
         let p: Problem = TEST_INPUT.parse().unwrap();
 
         assert_eq!(solve_part_1(&p), 14);
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = TEST_INPUT.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 34);
     }
 }
