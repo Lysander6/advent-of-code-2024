@@ -81,6 +81,22 @@ fn score_trailhead(map: &[Vec<u8>], starting_point: (usize, usize)) -> usize {
     peaks.len()
 }
 
+fn rate_trailhead(map: &[Vec<u8>], starting_point: (usize, usize)) -> usize {
+    let (x, y) = starting_point;
+    let height = map[x][y];
+
+    if height == 9 {
+        return 1;
+    }
+
+    let max_x = map.len() - 1;
+    let max_y = map[0].len() - 1;
+    let valid_neighbours =
+        neighbour_indices(x, y, max_x, max_y).filter(|n| map[n.0][n.1] == height + 1);
+
+    valid_neighbours.map(|n| rate_trailhead(map, n)).sum()
+}
+
 #[must_use]
 pub fn solve_part_1(p: &Problem) -> usize {
     let Problem { map } = p;
@@ -91,6 +107,23 @@ pub fn solve_part_1(p: &Problem) -> usize {
         for y in 0..map[0].len() {
             if map[x][y] == 0 {
                 score += score_trailhead(map, (x, y));
+            }
+        }
+    }
+
+    score
+}
+
+#[must_use]
+pub fn solve_part_2(p: &Problem) -> usize {
+    let Problem { map } = p;
+
+    let mut score = 0;
+
+    for x in 0..map.len() {
+        for y in 0..map[0].len() {
+            if map[x][y] == 0 {
+                score += rate_trailhead(map, (x, y));
             }
         }
     }
@@ -154,5 +187,53 @@ mod tests {
         let p: Problem = TEST_INPUT_2.parse().unwrap();
 
         assert_eq!(solve_part_1(&p), 36);
+    }
+
+    #[test]
+    fn test_rate_trailhead() {
+        let p: Problem = "\
+.....0.
+..4321.
+..5..2.
+..6543.
+..7..4.
+..8765.
+..9...."
+            .parse()
+            .unwrap();
+
+        assert_eq!(rate_trailhead(&p.map, (0, 5)), 3);
+
+        let p: Problem = "\
+..90..9
+...1.98
+...2..7
+6543456
+765.987
+876....
+987...."
+            .parse()
+            .unwrap();
+
+        assert_eq!(rate_trailhead(&p.map, (0, 3)), 13);
+    }
+
+    #[test]
+    fn test_solve_part_2() {
+        let p: Problem = "\
+012345
+123456
+234567
+345678
+4.6789
+56789."
+            .parse()
+            .unwrap();
+
+        assert_eq!(solve_part_2(&p), 227);
+
+        let p: Problem = TEST_INPUT_2.parse().unwrap();
+
+        assert_eq!(solve_part_2(&p), 81);
     }
 }
